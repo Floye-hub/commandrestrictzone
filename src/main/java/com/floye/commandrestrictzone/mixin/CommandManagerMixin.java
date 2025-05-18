@@ -49,7 +49,7 @@ public class CommandManagerMixin {
 			System.out.println("[CommandRestrictZone] isCommandRestrictedInZone returned: " + restricted);
 
 			if (restricted) {
-				source.sendError(Text.literal("Cette commande est limitée dans votre zone."));
+				source.sendError(Text.literal("This command is restricted in your current zone."));
 				ci.cancel();
 				System.out.println("[CommandRestrictZone] Command execution cancelled.");
 			}

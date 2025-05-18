@@ -3,7 +3,7 @@ package com.floye.commandrestrictzone;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
-import net.minecraft.server.command.CommandManager;
+import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
@@ -13,9 +13,18 @@ import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
 
 public class CommandRestrictZoneCommand {
+
+    // Creation of a SuggestionProvider for zone names
+    private static final SuggestionProvider<ServerCommandSource> ZONE_SUGGESTIONS = (context, builder) -> {
+        ZoneManager.getZones().stream()
+                .map(RestrictedZone::getName)
+                .forEach(builder::suggest);
+        return builder.buildFuture();
+    };
+
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(literal("CommandRestrictZone")
-                // Création d'une zone
+                // Zone creation
                 .then(literal("create")
                         .then(argument("name", StringArgumentType.string())
                                 .then(argument("minX", DoubleArgumentType.doubleArg())
@@ -27,9 +36,9 @@ public class CommandRestrictZoneCommand {
                                                                                 .executes(context -> {
                                                                                     String name = StringArgumentType.getString(context, "name");
 
-                                                                                    // Vérifier si une zone avec ce nom existe déjà
+                                                                                    // Check if a zone with this name already exists
                                                                                     if (ZoneManager.getZoneByName(name) != null) {
-                                                                                        context.getSource().sendError(Text.literal("❌ La zone '" + name + "' existe déjà !"));
+                                                                                        context.getSource().sendError(Text.literal("❌ Zone '" + name + "' already exists!"));
                                                                                         return 0;
                                                                                     }
 
@@ -44,7 +53,7 @@ public class CommandRestrictZoneCommand {
                                                                                     ZoneManager.addZone(zone);
 
                                                                                     context.getSource().sendFeedback(
-                                                                                            () -> Text.literal("✅ Zone '" + name + "' créée avec succès !"), false
+                                                                                            () -> Text.literal("✅ Zone '" + name + "' created successfully!"), false
                                                                                     );
                                                                                     return 1;
                                                                                 })
@@ -56,9 +65,10 @@ public class CommandRestrictZoneCommand {
                                 )
                         )
                 )
-                // Ajout d'une commande restreinte à une zone existante
+                // Add a restricted command to an existing zone
                 .then(literal("addCommand")
                         .then(argument("zoneName", StringArgumentType.string())
+                                .suggests(ZONE_SUGGESTIONS) // Add suggestions
                                 .then(argument("command", StringArgumentType.string())
                                         .executes(context -> {
                                             String zoneName = StringArgumentType.getString(context, "zoneName");
@@ -66,38 +76,40 @@ public class CommandRestrictZoneCommand {
 
                                             if (ZoneManager.addRestrictedCommandToZone(zoneName, command)) {
                                                 context.getSource().sendFeedback(
-                                                        () -> Text.literal("✅ La commande '" + command + "' a été ajoutée à la zone '" + zoneName + "'."), false
+                                                        () -> Text.literal("✅ Command '" + command + "' has been added to zone '" + zoneName + "'."), false
                                                 );
                                                 return 1;
                                             } else {
-                                                context.getSource().sendError(Text.literal("❌ Zone '" + zoneName + "' introuvable."));
+                                                context.getSource().sendError(Text.literal("❌ Zone '" + zoneName + "' not found."));
                                                 return 0;
                                             }
                                         })
                                 )
                         )
                 )
-                // Suppression d'une zone existante par son nom
+                // Remove an existing zone by its name
                 .then(literal("removeZone")
                         .then(argument("name", StringArgumentType.string())
+                                .suggests(ZONE_SUGGESTIONS) // Add suggestions
                                 .executes(context -> {
                                     String name = StringArgumentType.getString(context, "name");
 
                                     if (ZoneManager.removeZone(name)) {
                                         context.getSource().sendFeedback(
-                                                () -> Text.literal("✅ Zone '" + name + "' supprimée avec succès !"), false
+                                                () -> Text.literal("✅ Zone '" + name + "' removed successfully!"), false
                                         );
                                         return 1;
                                     } else {
-                                        context.getSource().sendError(Text.literal("❌ Zone '" + name + "' introuvable."));
+                                        context.getSource().sendError(Text.literal("❌ Zone '" + name + "' not found."));
                                         return 0;
                                     }
                                 })
                         )
                 )
-                // Suppression d'une commande restreinte d'une zone
+                // Remove a restricted command from a zone
                 .then(literal("removeCommand")
                         .then(argument("zoneName", StringArgumentType.string())
+                                .suggests(ZONE_SUGGESTIONS) // Add suggestions
                                 .then(argument("command", StringArgumentType.string())
                                         .executes(context -> {
                                             String zoneName = StringArgumentType.getString(context, "zoneName");
@@ -105,11 +117,11 @@ public class CommandRestrictZoneCommand {
 
                                             if (ZoneManager.removeRestrictedCommandFromZone(zoneName, command)) {
                                                 context.getSource().sendFeedback(
-                                                        () -> Text.literal("✅ La commande '" + command + "' a été retirée de la zone '" + zoneName + "'."), false
+                                                        () -> Text.literal("✅ Command '" + command + "' has been removed from zone '" + zoneName + "'."), false
                                                 );
                                                 return 1;
                                             } else {
-                                                context.getSource().sendError(Text.literal("❌ Zone '" + zoneName + "' introuvable ou commande non présente."));
+                                                context.getSource().sendError(Text.literal("❌ Zone '" + zoneName + "' not found or command not present."));
                                                 return 0;
                                             }
                                         })

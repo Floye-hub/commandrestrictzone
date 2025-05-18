@@ -33,6 +33,10 @@ public class ZoneManager {
         }
     }
 
+    // À ajouter dans ZoneManager.java
+    public static List<RestrictedZone> getZones() {
+        return new ArrayList<>(zones);
+    }
     // Sauvegarde des zones dans le fichier JSON
     public static void saveZones() {
         File file = new File(ZONES_FILE);
@@ -48,7 +52,6 @@ public class ZoneManager {
     // Ajoute une zone seulement si elle n'existe pas déjà
     public static void addZone(RestrictedZone zone) {
         if (getZoneByName(zone.getName()) != null) {
-            Commandrestrictzone.LOGGER.warn("La zone \"" + zone.getName() + "\" existe déjà. Opération annulée.");
             return;
         }
         zones.add(zone);
