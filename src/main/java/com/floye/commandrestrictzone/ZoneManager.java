@@ -16,7 +16,7 @@ public class ZoneManager {
     private static final Gson GSON = new Gson();
     private static final List<RestrictedZone> zones = new ArrayList<>();
 
-    // Méthode pour charger les zones depuis un fichier JSON
+    // Chargement des zones depuis le fichier JSON
     public static void loadZones() {
         File file = new File(ZONES_FILE);
         if (file.exists()) {
@@ -33,7 +33,7 @@ public class ZoneManager {
         }
     }
 
-    // Méthode pour sauvegarder les zones dans un fichier JSON
+    // Sauvegarde des zones dans le fichier JSON
     public static void saveZones() {
         File file = new File(ZONES_FILE);
         file.getParentFile().mkdirs();
@@ -45,17 +45,24 @@ public class ZoneManager {
         }
     }
 
-    // Méthode pour ajouter une nouvelle zone
+    // Ajoute une zone seulement si elle n'existe pas déjà
     public static void addZone(RestrictedZone zone) {
+        if (getZoneByName(zone.getName()) != null) {
+            Commandrestrictzone.LOGGER.warn("La zone \"" + zone.getName() + "\" existe déjà. Opération annulée.");
+            return;
+        }
         zones.add(zone);
         saveZones();
     }
 
-    // Récupérer une zone par son nom
+    // Retourne une zone par son nom
     public static RestrictedZone getZoneByName(String name) {
-        return zones.stream().filter(zone -> zone.getName().equalsIgnoreCase(name)).findFirst().orElse(null);
+        return zones.stream()
+                .filter(zone -> zone.getName().equalsIgnoreCase(name))
+                .findFirst().orElse(null);
     }
 
+    // Ajoute une commande restreinte à une zone existante
     public static boolean addRestrictedCommandToZone(String zoneName, String command) {
         RestrictedZone zone = getZoneByName(zoneName);
         if (zone != null) {
@@ -66,7 +73,31 @@ public class ZoneManager {
         return false;
     }
 
-    // Vérifier si une commande est bloquée dans une zone spécifique
+    // Supprime une zone par son nom
+    public static boolean removeZone(String name) {
+        RestrictedZone zone = getZoneByName(name);
+        if (zone != null) {
+            zones.remove(zone);
+            saveZones();
+            return true;
+        }
+        return false;
+    }
+
+    // Supprime une commande restreinte d'une zone
+    public static boolean removeRestrictedCommandFromZone(String zoneName, String command) {
+        RestrictedZone zone = getZoneByName(zoneName);
+        if (zone != null) {
+            boolean removed = zone.getRestrictedCommands().removeIf(cmd -> cmd.equalsIgnoreCase(command));
+            if (removed) {
+                saveZones();
+            }
+            return removed;
+        }
+        return false;
+    }
+
+    // Vérifie si une commande est bloquée dans une zone donnée
     public static boolean isCommandRestrictedInZone(String command, Box box) {
         return zones.stream()
                 .filter(zone -> zone.toBox().intersects(box))

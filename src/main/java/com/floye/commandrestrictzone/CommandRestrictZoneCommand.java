@@ -8,7 +8,6 @@ import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
 
 import java.util.ArrayList;
-import java.util.function.Supplier;
 
 import static net.minecraft.server.command.CommandManager.argument;
 import static net.minecraft.server.command.CommandManager.literal;
@@ -16,6 +15,7 @@ import static net.minecraft.server.command.CommandManager.literal;
 public class CommandRestrictZoneCommand {
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(literal("CommandRestrictZone")
+                // Création d'une zone
                 .then(literal("create")
                         .then(argument("name", StringArgumentType.string())
                                 .then(argument("minX", DoubleArgumentType.doubleArg())
@@ -26,6 +26,13 @@ public class CommandRestrictZoneCommand {
                                                                         .then(argument("maxZ", DoubleArgumentType.doubleArg())
                                                                                 .executes(context -> {
                                                                                     String name = StringArgumentType.getString(context, "name");
+
+                                                                                    // Vérifier si une zone avec ce nom existe déjà
+                                                                                    if (ZoneManager.getZoneByName(name) != null) {
+                                                                                        context.getSource().sendError(Text.literal("❌ La zone '" + name + "' existe déjà !"));
+                                                                                        return 0;
+                                                                                    }
+
                                                                                     double minX = DoubleArgumentType.getDouble(context, "minX");
                                                                                     double minY = DoubleArgumentType.getDouble(context, "minY");
                                                                                     double minZ = DoubleArgumentType.getDouble(context, "minZ");
@@ -49,6 +56,7 @@ public class CommandRestrictZoneCommand {
                                 )
                         )
                 )
+                // Ajout d'une commande restreinte à une zone existante
                 .then(literal("addCommand")
                         .then(argument("zoneName", StringArgumentType.string())
                                 .then(argument("command", StringArgumentType.string())
@@ -62,7 +70,46 @@ public class CommandRestrictZoneCommand {
                                                 );
                                                 return 1;
                                             } else {
-                                                context.getSource().sendError(Text.of("❌ Zone '" + zoneName + "' introuvable."));
+                                                context.getSource().sendError(Text.literal("❌ Zone '" + zoneName + "' introuvable."));
+                                                return 0;
+                                            }
+                                        })
+                                )
+                        )
+                )
+                // Suppression d'une zone existante par son nom
+                .then(literal("removeZone")
+                        .then(argument("name", StringArgumentType.string())
+                                .executes(context -> {
+                                    String name = StringArgumentType.getString(context, "name");
+
+                                    if (ZoneManager.removeZone(name)) {
+                                        context.getSource().sendFeedback(
+                                                () -> Text.literal("✅ Zone '" + name + "' supprimée avec succès !"), false
+                                        );
+                                        return 1;
+                                    } else {
+                                        context.getSource().sendError(Text.literal("❌ Zone '" + name + "' introuvable."));
+                                        return 0;
+                                    }
+                                })
+                        )
+                )
+                // Suppression d'une commande restreinte d'une zone
+                .then(literal("removeCommand")
+                        .then(argument("zoneName", StringArgumentType.string())
+                                .then(argument("command", StringArgumentType.string())
+                                        .executes(context -> {
+                                            String zoneName = StringArgumentType.getString(context, "zoneName");
+                                            String command = StringArgumentType.getString(context, "command");
+
+                                            if (ZoneManager.removeRestrictedCommandFromZone(zoneName, command)) {
+                                                context.getSource().sendFeedback(
+                                                        () -> Text.literal("✅ La commande '" + command + "' a été retirée de la zone '" + zoneName + "'."), false
+                                                );
+                                                return 1;
+                                            } else {
+                                                context.getSource().sendError(Text.literal("❌ Zone '" + zoneName + "' introuvable ou commande non présente."));
                                                 return 0;
                                             }
                                         })
