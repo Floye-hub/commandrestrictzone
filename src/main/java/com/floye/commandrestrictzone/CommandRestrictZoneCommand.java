@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.server.command.ServerCommandSource;
+import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 
@@ -131,6 +132,35 @@ public class CommandRestrictZoneCommand {
                                         })
                                 )
                         )
+                )
+                .then(literal("bypass")
+                        .executes(context -> {
+                            ServerCommandSource source = context.getSource();
+
+                            // Vérifier si la source est un joueur
+                            if (source.getEntity() instanceof ServerPlayerEntity player) {
+                                // Vérifier si le joueur a déjà le tag "Bypass"
+                                if (player.getCommandTags().contains("Bypass")) {
+                                    // Retirer le tag
+                                    player.removeCommandTag("Bypass");
+                                    source.sendFeedback(
+                                            () -> Text.literal("Bypass mode disabled for " + player.getName().getString() + "."),
+                                            false
+                                    );
+                                } else {
+                                    // Ajouter le tag
+                                    player.addCommandTag("Bypass");
+                                    source.sendFeedback(
+                                            () -> Text.literal("Bypass mode enabled for " + player.getName().getString() + "."),
+                                            false
+                                    );
+                                }
+                                return 1;
+                            } else {
+                                source.sendError(Text.literal("This command can only be used by players."));
+                                return 0;
+                            }
+                        })
                 )
         );
     }

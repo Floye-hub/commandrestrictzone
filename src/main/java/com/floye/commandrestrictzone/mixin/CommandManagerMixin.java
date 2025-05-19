@@ -24,22 +24,22 @@ public class CommandManagerMixin {
 	 */
 	@Inject(method = "execute", at = @At("HEAD"), cancellable = true)
 	private static void interceptCommand(ParseResults<ServerCommandSource> parseResults, String command, CallbackInfo ci) {
-		System.out.println("[CommandRestrictZone] Intercept command called. Command string: " + command);
 
 		ServerCommandSource source = parseResults.getContext().getSource();
 
 		// Vérifier que la commande est exécutée par une entité possédant une position
-		if (source.getEntity() instanceof ServerPlayerEntity) {
-			ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
+		if (source.getEntity() instanceof ServerPlayerEntity player) {
+			// Vérifier si le joueur a le tag "Bypass"
+			if (player.getCommandTags().contains("Bypass")) {
+				return; // Ne pas bloquer la commande
+			}
 
 			// Récupération de la position du joueur
 			BlockPos pos = player.getBlockPos();
-			System.out.println("[CommandRestrictZone] Player position: " + pos);
 			Box playerBox = new Box(pos);
 
 			// Récupérer la dimension actuelle du joueur
 			Identifier dimension = player.getWorld().getRegistryKey().getValue();
-			System.out.println("[CommandRestrictZone] Player dimension: " + dimension);
 
 			// Extraire le nom de la commande : prendre uniquement le premier token
 			String cmdName = command;
@@ -50,19 +50,14 @@ public class CommandManagerMixin {
 			if (tokens.length > 0) {
 				cmdName = tokens[0];
 			}
-			System.out.println("[CommandRestrictZone] Command name after processing: " + cmdName);
 
 			// Vérification si la commande est restreinte dans la zone du joueur et dans sa dimension
 			boolean restricted = ZoneManager.isCommandRestrictedInZone(cmdName, playerBox, dimension);
-			System.out.println("[CommandRestrictZone] isCommandRestrictedInZone returned: " + restricted);
 
 			if (restricted) {
-				source.sendError(Text.literal("This command is restricted in your current zone."));
+				source.sendError(Text.literal("That command is restricted in this area!"));
 				ci.cancel();
-				System.out.println("[CommandRestrictZone] Command execution cancelled.");
 			}
-		} else {
-			System.out.println("[CommandRestrictZone] La source de la commande n'est pas un joueur.");
 		}
 	}
 }
