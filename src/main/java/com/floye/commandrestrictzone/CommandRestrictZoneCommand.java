@@ -6,6 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.suggestion.SuggestionProvider;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 
 import java.util.ArrayList;
 
@@ -24,7 +25,7 @@ public class CommandRestrictZoneCommand {
 
     public static void register(CommandDispatcher<ServerCommandSource> dispatcher) {
         dispatcher.register(literal("CommandRestrictZone")
-                // Zone creation
+                .requires(source -> source.hasPermissionLevel(2))
                 .then(literal("create")
                         .then(argument("name", StringArgumentType.string())
                                 .then(argument("minX", DoubleArgumentType.doubleArg())
@@ -49,11 +50,14 @@ public class CommandRestrictZoneCommand {
                                                                                     double maxY = DoubleArgumentType.getDouble(context, "maxY");
                                                                                     double maxZ = DoubleArgumentType.getDouble(context, "maxZ");
 
-                                                                                    RestrictedZone zone = new RestrictedZone(name, minX, minY, minZ, maxX, maxY, maxZ, new ArrayList<>());
+                                                                                    // Récupérer la dimension du monde où la commande est exécutée
+                                                                                    Identifier dimension = context.getSource().getWorld().getRegistryKey().getValue();
+
+                                                                                    RestrictedZone zone = new RestrictedZone(name, minX, minY, minZ, maxX, maxY, maxZ, new ArrayList<>(), dimension);
                                                                                     ZoneManager.addZone(zone);
 
                                                                                     context.getSource().sendFeedback(
-                                                                                            () -> Text.literal("✅ Zone '" + name + "' created successfully!"), false
+                                                                                            () -> Text.literal("✅ Zone '" + name + "' created successfully in dimension '" + dimension + "'!"), false
                                                                                     );
                                                                                     return 1;
                                                                                 })

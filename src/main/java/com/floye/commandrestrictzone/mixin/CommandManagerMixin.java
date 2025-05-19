@@ -5,8 +5,10 @@ import com.mojang.brigadier.ParseResults;
 import net.minecraft.server.command.CommandManager;
 import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.server.network.ServerPlayerEntity;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -27,11 +29,17 @@ public class CommandManagerMixin {
 		ServerCommandSource source = parseResults.getContext().getSource();
 
 		// Vérifier que la commande est exécutée par une entité possédant une position
-		if (source.getEntity() != null) {
+		if (source.getEntity() instanceof ServerPlayerEntity) {
+			ServerPlayerEntity player = (ServerPlayerEntity) source.getEntity();
+
 			// Récupération de la position du joueur
-			BlockPos pos = source.getPlayer().getBlockPos();
+			BlockPos pos = player.getBlockPos();
 			System.out.println("[CommandRestrictZone] Player position: " + pos);
 			Box playerBox = new Box(pos);
+
+			// Récupérer la dimension actuelle du joueur
+			Identifier dimension = player.getWorld().getRegistryKey().getValue();
+			System.out.println("[CommandRestrictZone] Player dimension: " + dimension);
 
 			// Extraire le nom de la commande : prendre uniquement le premier token
 			String cmdName = command;
@@ -44,8 +52,8 @@ public class CommandManagerMixin {
 			}
 			System.out.println("[CommandRestrictZone] Command name after processing: " + cmdName);
 
-			// Vérification si la commande est restreinte dans la zone du joueur
-			boolean restricted = ZoneManager.isCommandRestrictedInZone(cmdName, playerBox);
+			// Vérification si la commande est restreinte dans la zone du joueur et dans sa dimension
+			boolean restricted = ZoneManager.isCommandRestrictedInZone(cmdName, playerBox, dimension);
 			System.out.println("[CommandRestrictZone] isCommandRestrictedInZone returned: " + restricted);
 
 			if (restricted) {
